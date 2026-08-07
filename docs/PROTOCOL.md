@@ -1,6 +1,7 @@
 # miyoi — reverse-engineered attack shark HID protocol
 
 native macOS support for **attack shark** mices (vendor **0x373E**)
+
 sources: official web driver bundle `index-e3a67185.js` (WebHID) at `https://www.xvalleyinno.top/AttackShark/`, config `Config/env-models.json`, verified live against an R5 Ultra via IOKit on macOS.
 
 ## supported devices (all "new protocol", IsNewProtocol=1)

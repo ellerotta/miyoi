@@ -11,6 +11,7 @@ this is an independent community project. there is no official **attack shark** 
 5. state whether the mouse is wired or wireless and include its firmware version when `info` can read it
 
 do not include serial numbers or other device identifiers you consider sensitive
+
 avoid repeated write attempts when the device is returning unexpected data
 
 ## scope

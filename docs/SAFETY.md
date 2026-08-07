@@ -1,6 +1,7 @@
 # safety
 
 `miyoi` communicates with device firmware through reverse-engineered HID feature reports
+
 read-only operations are lower risk, but commands that set DPI, polling rate, lift-off distance, active stage, or button bindings modify persistent or active device state
 
 ## before writing settings
@@ -20,4 +21,5 @@ read-only operations are lower risk, but commands that set DPI, polling rate, li
 - do not use the software on an unsupported PID merely because it shares the same vendor ID
 
 stop using write commands if responses are missing, values read back incorrectly, or the device repeatedly disconnects
+
 reconnect the device and use the vendor's supported recovery process if necessary

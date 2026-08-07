@@ -1,11 +1,13 @@
 # CLI usage
 
 examples below use `swift run miyoictl`
+
 for an optimized build, substitute `.build/release/miyoictl`
 
 ## device selection
 
 commands accept an optional `--pid PID` or `--pid=PID`
+
 both decimal and `0x`-prefixed hexadecimal values are supported
 
 ```sh
@@ -38,6 +40,7 @@ swift run miyoictl lod [--pid PID] 1.0
 ```
 
 button indices are model-specific
+
 run `bind list` first; the currently supported models expose indices 1 through 5
 
 ```sh
@@ -49,4 +52,5 @@ swift run miyoictl bind [--pid PID] set 1 macro 1
 ```
 
 the `key` value can be a recognized key name or a decimal/hexadecimal HID usage code
+
 the CLI validates input, reports failures on stderr with a nonzero exit code, and reads modified settings back before printing `ok`
