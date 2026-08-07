@@ -1,4 +1,7 @@
 import Foundation
+import os
+
+let debugLog = Logger(subsystem: "com.miyoi.debug", category: "hid")
 
 public enum MiyoiError: Error, LocalizedError, Equatable {
     case deviceNotFound
@@ -84,6 +87,7 @@ public final class MiyoiDevice {
             return (($0[1] == 0xA1 || $0[1] == 0x02) && $0[6] == 0x81) ||
                 (($0[0] == 0xA1 || $0[0] == 0x02) && $0[5] == 0x81)
         }
+        debugLog.debug("FW RX: \(r.map { String(format: "%02X", $0) }.joined(separator: " "), privacy: .public)")
         guard !r.isEmpty else { throw MiyoiError.noResponse }
         var version = "0.0.0.0"
         if r.indices.contains(10), r[6] == 0x81, r[1] == 0xA1 || r[1] == 0x02 {
@@ -105,6 +109,7 @@ public final class MiyoiDevice {
         let command = request[5]
         let address = request[2]
         let target = request[4]
+        debugLog.debug("TX: \(request.map { String(format: "%02X", $0) }.joined(separator: " "), privacy: .public)")
         let response = try transport.exchange(request, readAttempts: 5) { [hidIndex] response in
             let markerIndex = 1 - hidIndex
             let echoIndex = 6 - hidIndex
@@ -116,6 +121,8 @@ public final class MiyoiDevice {
                 response[2] == address &&
                 response[4] == target
         }
+        let capturedHIDIndex = hidIndex
+        debugLog.debug("RX: \(response.map { String(format: "%02X", $0) }.joined(separator: " "), privacy: .public) hidIndex:\(capturedHIDIndex)")
         guard !response.isEmpty else { throw MiyoiError.noResponse }
         try validateResponse(response, command: command, address: address, target: target)
         return response
@@ -232,14 +239,14 @@ public final class MiyoiDevice {
 
     public func activeDPIStage() throws -> Int {
         let r = try exchange(try frame(payload: [profile], target: 1, cmd: 0x82))
-        return try valueByte(r)
+        return try valueByte(r) - 1
     }
 
     public func setActiveDPIStage(_ stage: Int) throws {
         guard (0..<model.maxStageCount).contains(stage) else {
             throw MiyoiError.invalidInput("DPI stage must be between 0 and \(model.maxStageCount - 1)")
         }
-        _ = try exchange(try frame(payload: [profile, UInt8(stage)], target: 1, cmd: 0x02))
+        _ = try exchange(try frame(payload: [profile, UInt8(stage + 1)], target: 1, cmd: 0x02))
     }
 
     public func dpiStages() throws -> [DPIStage] {
