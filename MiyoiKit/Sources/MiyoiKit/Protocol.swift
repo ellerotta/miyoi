@@ -1,7 +1,7 @@
 import Foundation
 import os
 
-let debugLog = Logger(subsystem: "com.miyoi.debug", category: "hid")
+let debugLog = Logger(subsystem: "eu.ellerotta.miyoi.debug", category: "hid")
 
 public enum MiyoiError: Error, LocalizedError, Equatable {
     case deviceNotFound
