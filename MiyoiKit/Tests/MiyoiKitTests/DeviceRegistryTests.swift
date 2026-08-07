@@ -4,8 +4,8 @@ import MiyoiKit
 final class DeviceRegistryTests: XCTestCase {
     func testRegistryContainsExpectedModels() {
         XCTAssertEqual(DeviceRegistry.vendorID, 0x373E)
-        XCTAssertEqual(DeviceRegistry.models.map(\.id), ["r6", "r8", "r5u", "m5u"])
-        XCTAssertEqual(DeviceRegistry.models.map(\.name), ["R6", "R8", "R5 Ultra", "M5 Ultra"])
+        XCTAssertEqual(DeviceRegistry.models.map(\.id), ["r6", "r5u", "m5u"])
+        XCTAssertEqual(DeviceRegistry.models.map(\.name), ["R6", "R5 Ultra", "M5 Ultra"])
     }
 
     func testModelIdentifiersAndProductIdentifiersAreUnique() {
