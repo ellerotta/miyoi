@@ -229,12 +229,7 @@ public final class MiyoiDevice {
     }
 
     public func dpiMax() throws -> Int {
-        let r = try exchange(try frame(target: 1, cmd: 0x8C))
-        let maximum = (Int(try byte(r, at: 7 - hidIndex)) << 8) | Int(try byte(r, at: 8 - hidIndex))
-        guard (50...min(model.maxDPIX, model.maxDPIY)).contains(maximum) else {
-            throw MiyoiError.protocolMismatch
-        }
-        return maximum
+        min(model.maxDPIX, model.maxDPIY)
     }
 
     public func activeDPIStage() throws -> Int {

@@ -239,8 +239,8 @@ private struct DeviceDashboard: View {
 
     private var movementCard: some View {
         SettingsCard(title: "Movement", systemImage: "scope") {
-            VStack(alignment: .leading, spacing: 14) {
-                LabeledContent {
+            VStack(alignment: .leading, spacing: 12) {
+                SettingRow("Polling rate") {
                     Picker("Polling rate", selection: Binding(
                         get: { snapshot.pollingHz },
                         set: { manager.setPolling($0) }
@@ -251,14 +251,12 @@ private struct DeviceDashboard: View {
                     }
                     .labelsHidden()
                     .pickerStyle(.menu)
-                } label: {
-                    HStack(spacing: 6) {
-                        Text("Polling rate")
-                        PollingRateInfoButton()
-                    }
+                    .frame(width: 100)
+                } info: {
+                    PollingRateInfoButton()
                 }
 
-                LabeledContent("Lift-off distance") {
+                SettingRow("Lift-off distance") {
                     Picker("Lift-off distance", selection: Binding(
                         get: { snapshot.lod },
                         set: { manager.setLOD($0) }
@@ -268,6 +266,8 @@ private struct DeviceDashboard: View {
                         }
                     }
                     .labelsHidden()
+                    .pickerStyle(.menu)
+                    .frame(width: 100)
                 }
 
                 Divider()
@@ -281,19 +281,22 @@ private struct DeviceDashboard: View {
 
                 Divider()
 
-                LabeledContent("Sleep timer") {
+                let sleepLabels: [(String, Int)] = [
+                    ("Never", 0), ("1 min", 60), ("3 min", 180),
+                    ("5 min", 300), ("10 min", 600), ("20 min", 1_200),
+                ]
+                SettingRow("Sleep timer") {
                     Picker("Sleep timer", selection: Binding(
                         get: { snapshot.sleepSeconds },
                         set: { manager.setSleep($0) }
                     )) {
-                        Text("Never").tag(0)
-                        Text("1 minute").tag(60)
-                        Text("3 minutes").tag(180)
-                        Text("5 minutes").tag(300)
-                        Text("10 minutes").tag(600)
-                        Text("20 minutes").tag(1_200)
+                        ForEach(sleepLabels, id: \.1) { label, seconds in
+                            Text(label).tag(seconds)
+                        }
                     }
                     .labelsHidden()
+                    .pickerStyle(.menu)
+                    .frame(width: 100)
                 }
             }
             .disabled(manager.isLoading || manager.isSaving)
@@ -302,18 +305,30 @@ private struct DeviceDashboard: View {
 
     private var sensorCard: some View {
         SettingsCard(title: "Sensor", systemImage: "sensor.tag.radiowaves.forward") {
-            VStack(spacing: 10) {
+            VStack(spacing: 8) {
                 if model.supportsMotionSync {
-                    ConfirmedToggle("Motion Sync", value: snapshot.motionSync, action: manager.setMotionSync)
+                    SettingRow("Motion Sync") {
+                        Toggle("", isOn: Binding(get: { snapshot.motionSync }, set: { manager.setMotionSync($0) }))
+                            .toggleStyle(.switch).labelsHidden()
+                    }
                 }
                 if model.supportsAngular {
-                    ConfirmedToggle("Angle Snapping", value: snapshot.angleSnap, action: manager.setAngleSnap)
+                    SettingRow("Angle Snapping") {
+                        Toggle("", isOn: Binding(get: { snapshot.angleSnap }, set: { manager.setAngleSnap($0) }))
+                            .toggleStyle(.switch).labelsHidden()
+                    }
                 }
                 if model.supportsRipple {
-                    ConfirmedToggle("Ripple Control", value: snapshot.ripple, action: manager.setRipple)
+                    SettingRow("Ripple Control") {
+                        Toggle("", isOn: Binding(get: { snapshot.ripple }, set: { manager.setRipple($0) }))
+                            .toggleStyle(.switch).labelsHidden()
+                    }
                 }
                 if model.supportsTracking {
-                    ConfirmedToggle("Tracking Mode", value: snapshot.tracking, action: manager.setTracking)
+                    SettingRow("Tracking Mode") {
+                        Toggle("", isOn: Binding(get: { snapshot.tracking }, set: { manager.setTracking($0) }))
+                            .toggleStyle(.switch).labelsHidden()
+                    }
                 }
             }
         }
@@ -538,22 +553,35 @@ private struct DPIStageChip: View {
     }
 }
 
-private struct ConfirmedToggle: View {
-    @EnvironmentObject private var manager: DeviceManager
+private struct SettingRow<Control: View>: View {
     let title: String
-    let value: Bool
-    let action: (Bool) -> Void
+    @ViewBuilder let control: () -> Control
+    var info: (() -> any View)?
 
-    init(_ title: String, value: Bool, action: @escaping (Bool) -> Void) {
+    init(_ title: String,
+         @ViewBuilder control: @escaping () -> Control,
+         @ViewBuilder info: @escaping () -> some View
+    ) {
         self.title = title
-        self.value = value
-        self.action = action
+        self.control = control
+        self.info = info
+    }
+
+    init(_ title: String, @ViewBuilder control: @escaping () -> Control) {
+        self.title = title
+        self.control = control
+        self.info = nil
     }
 
     var body: some View {
-        Toggle(title, isOn: Binding(get: { value }, set: { action($0) }))
-            .toggleStyle(.switch)
-            .disabled(manager.isLoading || manager.isSaving)
+        HStack(spacing: 8) {
+            HStack(spacing: 4) {
+                Text(title).font(.body)
+                if let info { AnyView(info()) }
+            }
+            Spacer()
+            control()
+        }
     }
 }
 
