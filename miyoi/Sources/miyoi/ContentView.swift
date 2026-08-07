@@ -62,7 +62,7 @@ struct ContentView: View {
             }
         }
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.45), value: showingReveal)
-        .frame(minWidth: 760, minHeight: 680)
+        .frame(width: 820, height: 760)
         .background(AppBackground())
         .task {
             if manager.connectionState == .disconnected { manager.connect() }
