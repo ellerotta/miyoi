@@ -7,6 +7,10 @@ MACOS_DIR="$BUNDLE/Contents/MacOS"
 RESOURCES_DIR="$BUNDLE/Contents/Resources"
 PLIST="$BUNDLE/Contents/Info.plist"
 
+VERSION="${MIYOI_VERSION:-1.0}"
+BUILD="${MIYOI_BUILD:-1000}"
+ARCHS="${MIYOI_ARCHS:-}"
+
 needs_swiftui_macro_plugin() {
 	local plugins
 	plugins="$(dirname "$(xcrun --find swift-frontend)")/../lib/swift/host/plugins"
@@ -35,17 +39,23 @@ if [[ -z "${SDKROOT:-}" ]] && needs_swiftui_macro_plugin; then
 	echo "[-] Using SDK $(basename "$SDKROOT") (toolchain has no SwiftUIMacros plugin)"
 fi
 
-echo "[-] Building release binary..."
-swift build -c release --product miyoi
+BUILD_FLAGS=(-c release)
+for arch in $ARCHS; do
+	BUILD_FLAGS+=(--arch "$arch")
+done
+
+echo "[-] Building release binary ($VERSION build $BUILD${ARCHS:+, $ARCHS})..."
+swift build "${BUILD_FLAGS[@]}" --product miyoi
+BIN_DIR="$(swift build "${BUILD_FLAGS[@]}" --show-bin-path)"
 
 echo "[-] Creating app bundle..."
 rm -rf "$BUNDLE"
 mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
 
-cp .build/release/miyoi "$MACOS_DIR/$APP_NAME"
-cp -R .build/release/miyoi_miyoi.bundle "$RESOURCES_DIR/"
+cp "$BIN_DIR/miyoi" "$MACOS_DIR/$APP_NAME"
+cp -R "$BIN_DIR/miyoi_miyoi.bundle" "$RESOURCES_DIR/"
 
-cat > "$PLIST" << 'PLISTEOF'
+cat > "$PLIST" << PLISTEOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -63,9 +73,9 @@ cat > "$PLIST" << 'PLISTEOF'
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0</string>
+	<string>$VERSION</string>
 	<key>CFBundleVersion</key>
-	<string>1000</string>
+	<string>$BUILD</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>15.0</string>
 	<key>NSHighResolutionCapable</key>
@@ -75,6 +85,9 @@ cat > "$PLIST" << 'PLISTEOF'
 </dict>
 </plist>
 PLISTEOF
+
+echo "[-] Signing ad-hoc..."
+codesign --force --sign - "$BUNDLE"
 
 echo "[!] $BUNDLE built successfully!"
 echo "Path: $(realpath "$BUNDLE")"

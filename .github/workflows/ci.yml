@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: macos-26
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Build all products
+        run: swift build
+
+      - name: Run unit tests
+        run: swift test
+
+      - name: Run self-test harness
+        run: swift run miyoi-selftest
+
+      - name: Build app bundle
+        run: ./build-app.sh
+
+      - name: Package app bundle
+        run: ditto -c -k --keepParent Miyoi.app Miyoi.zip
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Miyoi-app
+          path: Miyoi.zip
+          retention-days: 14
