@@ -1,0 +1,126 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to build, for example v1.0.0
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and publish
+    runs-on: macos-26
+
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+      MIYOI_ARCHS: arm64 x86_64
+
+    steps:
+      - name: Resolve version
+        id: version
+        run: |
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Tag '$TAG' must look like v1.2.3 or v1.2.3-beta.1"
+            exit 1
+          fi
+          version="${TAG#v}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [[ "$version" == *-* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG }}
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Run unit tests
+        run: swift test
+
+      - name: Run self-test harness
+        run: swift run miyoi-selftest
+
+      - name: Build universal app bundle
+        env:
+          MIYOI_VERSION: ${{ steps.version.outputs.version }}
+          MIYOI_BUILD: ${{ github.run_number }}
+        run: ./build-app.sh
+
+      - name: Build and package artifacts
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          arch_flags=()
+          for arch in $MIYOI_ARCHS; do
+            arch_flags+=(--arch "$arch")
+          done
+          swift build -c release "${arch_flags[@]}" --product miyoictl
+          bin_dir="$(swift build -c release "${arch_flags[@]}" --show-bin-path)"
+
+          mkdir -p dist
+          ditto -c -k --keepParent Miyoi.app "dist/Miyoi-$VERSION-macOS-universal.zip"
+          tar -czf "dist/miyoictl-$VERSION-macOS-universal.tar.gz" -C "$bin_dir" miyoictl
+          (cd dist && shasum -a 256 Miyoi-*.zip miyoictl-*.tar.gz > SHA256SUMS.txt)
+          cat dist/SHA256SUMS.txt
+
+      - name: Write release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > notes.md << 'NOTESEOF'
+          ## Install
+
+          Download the `Miyoi-*-macOS-universal.zip` asset, unzip it, and move `Miyoi.app` to `/Applications`.
+
+          These builds are ad-hoc signed rather than notarized, so macOS quarantines them after download. Clear the flag once:
+
+          ```sh
+          xattr -dr com.apple.quarantine /Applications/Miyoi.app
+          ```
+
+          For the command line tool, unpack `miyoictl-*-macOS-universal.tar.gz` and do the same:
+
+          ```sh
+          xattr -d com.apple.quarantine miyoictl
+          ./miyoictl list
+          ```
+
+          Both binaries are universal (Apple Silicon and Intel) and need macOS 15 or later. Checksums are in `SHA256SUMS.txt`.
+
+          NOTESEOF
+          if generated="$(gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" -f tag_name="$TAG" --jq .body)"; then
+            printf '%s\n' "$generated" >> notes.md
+          fi
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          PRERELEASE: ${{ steps.version.outputs.prerelease }}
+        run: |
+          flags=(--title "Miyoi $VERSION" --notes-file notes.md)
+          if [[ "$PRERELEASE" == "true" ]]; then
+            flags+=(--prerelease)
+          fi
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber
+            gh release edit "$TAG" "${flags[@]}"
+          else
+            gh release create "$TAG" dist/* "${flags[@]}"
+          fi

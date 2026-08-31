@@ -1,5 +1,7 @@
 # miyoi
 
+[![CI](https://github.com/ellerotta/miyoi/actions/workflows/ci.yml/badge.svg)](https://github.com/ellerotta/miyoi/actions/workflows/ci.yml)
+
 `miyoi` is an independent, reverse-engineered macOS toolkit for configuring selected **attack shark** mice over their vendor HID interface
 
 the Swift package provides the `MiyoiKit` library, the `miyoi` SwiftUI application executable, and the `miyoictl` command-line executable
@@ -29,6 +31,18 @@ firmware updates and bootloader operations are intentionally out of scope
 use this software at your own risk
 
 see [safety](docs/SAFETY.md) for details
+
+## install
+
+download the newest `Miyoi-*-macOS-universal.zip` from [releases](https://github.com/ellerotta/miyoi/releases), unzip it, and move `Miyoi.app` to `/Applications`
+
+published builds are ad-hoc signed rather than notarized, so macOS quarantines them after download, clear the flag once with
+
+```sh
+xattr -dr com.apple.quarantine /Applications/Miyoi.app
+```
+
+the `miyoictl-*-macOS-universal.tar.gz` asset holds the command-line binary, and `SHA256SUMS.txt` covers both archives
 
 ## building
 
