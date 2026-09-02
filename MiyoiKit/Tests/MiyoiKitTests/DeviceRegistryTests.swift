@@ -37,8 +37,8 @@ final class DeviceRegistryTests: XCTestCase {
         }
 
         XCTAssertTrue(DeviceRegistry.model(forPID: 0x0021)?.supportsRipple == true)
-        XCTAssertTrue(DeviceRegistry.model(forPID: 0x003A)?.supportsHyper == false)
-        XCTAssertTrue(DeviceRegistry.model(forPID: 0x003A)?.supportsRipple == true)
+        XCTAssertTrue(DeviceRegistry.model(forPID: 0x0046)?.supportsHyper == false)
+        XCTAssertTrue(DeviceRegistry.model(forPID: 0x0046)?.supportsRipple == true)
         XCTAssertEqual(DeviceRegistry.model(forPID: 0x0047)?.lodValues, [0.7, 1, 2])
     }
 }
